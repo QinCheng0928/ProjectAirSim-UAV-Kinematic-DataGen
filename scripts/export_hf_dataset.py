@@ -30,28 +30,28 @@ def write_dataset_card(samples: list[dict], path: Path) -> None:
     trajectory_types = sorted({sample["trajectory_type"] for sample in samples})
     sample_rate = 1.0 / float(samples[0]["dt"]) if samples else 10.0
     text = f"""# ProjectAirSim UAV Kinematic Trajectories
-        This dataset contains UAV trajectory episodes collected from ProjectAirSim. Each row is one episode. The `states` field is a variable-length sequence sampled at approximately {sample_rate:.2f} Hz.
+This dataset contains UAV trajectory episodes collected from ProjectAirSim. Each row is one episode. The `states` field is a variable-length sequence sampled at approximately {sample_rate:.2f} Hz.
 
-        State vector:
-        `[t, x, y, z, qw, qx, qy, qz, vx, vy, vz, wx, wy, wz, ax, ay, az]`
+State vector:
+`[t, x, y, z, qw, qx, qy, qz, vx, vy, vz, wx, wy, wz, ax, ay, az]`
 
-        Fields:
-        - `episode_id`: integer episode index.
-        - `trajectory_type`: trajectory family used to generate waypoints.
-        - `start_position`: NED start position `[x, y, z]` in meters.
-        - `goal_position`: NED final goal position `[x, y, z]` in meters.
-        - `waypoints`: planned intermediate NED waypoints.
-        - `obstacle_position`: synthetic obstacle center for avoidance episodes, otherwise null.
-        - `dt`: target sampling interval in seconds.
-        - `params`: randomized speed, duration, noise, and trajectory parameters.
-        - `states`: sampled kinematic history.
+Fields:
+- `episode_id`: integer episode index.
+- `trajectory_type`: trajectory family used to generate waypoints.
+- `start_position`: NED start position `[x, y, z]` in meters.
+- `goal_position`: NED final goal position `[x, y, z]` in meters.
+- `waypoints`: planned intermediate NED waypoints.
+- `obstacle_position`: synthetic obstacle center for avoidance episodes, otherwise null.
+- `dt`: target sampling interval in seconds.
+- `params`: randomized speed, duration, noise, and trajectory parameters.
+- `states`: sampled kinematic history.
 
-        Trajectory types:
-        {chr(10).join(f"- `{name}`" for name in trajectory_types)}
+Trajectory types:
+{chr(10).join(f"- `{name}`" for name in trajectory_types)}
 
-        Source:
-        Generated with the ProjectAirSim Python client using asynchronous UAV velocity commands and ground-truth or estimated kinematics.
-        """
+Source:
+Generated with the ProjectAirSim Python client using asynchronous UAV velocity commands and ground-truth or estimated kinematics.
+"""
     
     path.write_text(text, encoding="utf-8")
 
