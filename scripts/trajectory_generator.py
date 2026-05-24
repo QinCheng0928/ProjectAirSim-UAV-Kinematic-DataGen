@@ -5,7 +5,7 @@ from dataclasses import asdict
 
 import numpy as np
 
-from config import DataGenConfig
+from .config import DataGenConfig
 
 
 class TrajectoryGenerator:

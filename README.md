@@ -39,7 +39,7 @@
 
 ## 轨迹类型
 
-`trajectory_generator.py` 会为每个 episode 随机选择轨迹模式，并随机化起点、目标点、高度、路径尺度、速度、持续时间、yaw 朝向和轻微扰动。
+`scripts/trajectory_generator.py` 会为每个 episode 随机选择轨迹模式，并随机化起点、目标点、高度、路径尺度、速度、持续时间、yaw 朝向和轻微扰动。
 
 已实现类型：
 
@@ -63,7 +63,7 @@ y in [-50, 50]
 z in [-30, -3]
 ```
 
-可在 `config.py` 中调整采样频率、episode 数量、速度范围、轨迹长度和 workspace。
+可在 `scripts/config.py` 中调整采样频率、episode 数量、速度范围、轨迹长度和 workspace。
 
 ## ProjectAirSim 环境准备
 
@@ -100,7 +100,7 @@ from projectairsim import ProjectAirSimClient, World, Drone
 仓库中的 `sim_config/scene_config.jsonc` 只是占位文件。运行采集前，请替换为真实 ProjectAirSim scene config，或直接通过命令行传入官方示例 scene config：
 
 ```bash
-python collect_dataset.py \
+python -m scripts.collect_dataset \
   --num-episodes 200 \
   --sample-rate 10 \
   --output data/raw/episodes.jsonl \
@@ -113,7 +113,7 @@ python collect_dataset.py \
 启动 ProjectAirSim simulator 后运行：
 
 ```bash
-python collect_dataset.py \
+python -m scripts.collect_dataset \
   --num-episodes 200 \
   --sample-rate 10 \
   --output data/raw/episodes.jsonl \
@@ -139,7 +139,7 @@ python collect_dataset.py \
 ## 导出 Hugging Face Dataset
 
 ```bash
-python export_hf_dataset.py \
+python -m scripts.export_hf_dataset \
   --input data/raw/episodes.jsonl \
   --output data/hf_dataset
 ```
@@ -182,10 +182,12 @@ print(dataset[0])
 .
 ├── README.md
 ├── requirements.txt
-├── config.py
-├── trajectory_generator.py
-├── collect_dataset.py
-├── export_hf_dataset.py
+├── scripts/
+│   ├── __init__.py
+│   ├── config.py
+│   ├── trajectory_generator.py
+│   ├── collect_dataset.py
+│   └── export_hf_dataset.py
 ├── sim_config/
 │   └── scene_config.jsonc
 └── data/

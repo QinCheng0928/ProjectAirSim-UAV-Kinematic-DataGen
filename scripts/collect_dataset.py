@@ -12,8 +12,8 @@ from typing import Any
 import numpy as np
 from tqdm import tqdm
 
-from config import DataGenConfig
-from trajectory_generator import TrajectoryGenerator
+from .config import DataGenConfig
+from .trajectory_generator import TrajectoryGenerator
 
 
 def get_nested(data: Any, *names: str, default: Any = None) -> Any:
