@@ -6,7 +6,7 @@ from pathlib import Path
 
 @dataclass
 class DataGenConfig:
-    num_episodes: int = 200
+    num_episodes: int = 1000
     sample_rate_hz: float = 10.0
     output_path: Path = Path("data/raw/episodes.jsonl")
     scene_config: str = "sim_config/scene_drone_classic.jsonc"
@@ -21,7 +21,7 @@ class DataGenConfig:
     waypoint_count_range: tuple[int, int] = (8, 28)
     hover_time_range: tuple[float, float] = (1.5, 5.0)
     noise_std_range: tuple[float, float] = (0.0, 0.35)
-    move_step_sec: float = 0.18
+    move_step_sec: float = 1.0
     waypoint_tolerance_m: float = 1.0
 
     trajectory_types: list[str] = field(

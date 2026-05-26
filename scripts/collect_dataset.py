@@ -17,128 +17,39 @@ from .trajectory_generator import TrajectoryGenerator
 
 from projectairsim import Drone, ProjectAirSimClient, World
 
-def get_nested(data: Any, *names: str, default: Any = None) -> Any:
-    current = data
-    for name in names:
-        if current is None:
-            return default
-        if isinstance(current, dict):
-            current = current.get(name, default)
-        else:
-            current = getattr(current, name, default)
-    return current
-
-
 def xyz_from(value: Any, default: tuple[float, float, float] = (0.0, 0.0, 0.0)) -> list[float]:
-    if value is None:
-        return list(default)
-    if isinstance(value, dict):
-        return [
-            float(value.get("x", value.get("north", default[0]))),
-            float(value.get("y", value.get("east", default[1]))),
-            float(value.get("z", value.get("down", default[2]))),
-        ]
-    if isinstance(value, (list, tuple, np.ndarray)):
-        return [float(value[0]), float(value[1]), float(value[2])]
     return [
-        float(getattr(value, "x", getattr(value, "north", default[0]))),
-        float(getattr(value, "y", getattr(value, "east", default[1]))),
-        float(getattr(value, "z", getattr(value, "down", default[2]))),
+        float(value.get("x", default[0])),
+        float(value.get("y", default[1])),
+        float(value.get("z", default[2])),
     ]
-
 
 def quat_from(value: Any) -> list[float]:
-    if value is None:
-        return [1.0, 0.0, 0.0, 0.0]
-    if isinstance(value, dict):
-        return [
-            float(value.get("w", value.get("qw", 1.0))),
-            float(value.get("x", value.get("qx", 0.0))),
-            float(value.get("y", value.get("qy", 0.0))),
-            float(value.get("z", value.get("qz", 0.0))),
-        ]
-    if isinstance(value, (list, tuple, np.ndarray)):
-        return [float(value[0]), float(value[1]), float(value[2]), float(value[3])]
     return [
-        float(getattr(value, "w", getattr(value, "qw", 1.0))),
-        float(getattr(value, "x", getattr(value, "qx", 0.0))),
-        float(getattr(value, "y", getattr(value, "qy", 0.0))),
-        float(getattr(value, "z", getattr(value, "qz", 0.0))),
+        float(value.get("w", 1.0)),
+        float(value.get("x", 0.0)),
+        float(value.get("y", 0.0)),
+        float(value.get("z", 0.0)),
     ]
-
 
 def extract_kinematic_state(
     kinematics: Any,
     t: float,
-    previous_velocity: list[float] | None = None,
-    dt: float = 0.1,
 ) -> tuple[list[float], list[float]]:
-    pose = get_nested(kinematics, "pose", default=kinematics)
-    position = (
-        get_nested(kinematics, "position")
-        or get_nested(pose, "position")
-        or get_nested(pose, "translation")
-        or get_nested(kinematics, "translation")
-    )
-    orientation = (
-        get_nested(kinematics, "orientation")
-        or get_nested(pose, "orientation")
-        or get_nested(pose, "rotation")
-        or get_nested(kinematics, "rotation")
-    )
-    linear_velocity = (
-        get_nested(kinematics, "linear_velocity")
-        or get_nested(kinematics, "twist", "linear")
-        or get_nested(kinematics, "velocity")
-    )
-    angular_velocity = (
-        get_nested(kinematics, "angular_velocity")
-        or get_nested(kinematics, "twist", "angular")
-        or get_nested(kinematics, "angular")
-    )
-    linear_acceleration = (
-        get_nested(kinematics, "linear_acceleration")
-        or get_nested(kinematics, "acceleration")
-        or get_nested(kinematics, "accel")
-    )
+    position = kinematics["pose"]["position"]
+    orientation = kinematics["pose"]["orientation"]
+    linear_velocity = kinematics["twist"]["linear"]
+    angular_velocity = kinematics["twist"]["angular"]
+    linear_acceleration = kinematics["accels"]["linear"]
 
     pos = xyz_from(position)
     quat = quat_from(orientation)
     vel = xyz_from(linear_velocity)
     omega = xyz_from(angular_velocity)
-    if linear_acceleration is None and previous_velocity is not None:
-        acc = [(vel[i] - previous_velocity[i]) / dt for i in range(3)]
-    else:
-        acc = xyz_from(linear_acceleration)
+    acc = xyz_from(linear_acceleration)
 
     state = [float(t), *pos, *quat, *vel, *omega, *acc]
-    return [round(float(x), 6) for x in state], vel
-
-
-async def move_by_velocity(drone: Any, velocity: np.ndarray, duration: float) -> None:
-    yaw = math.atan2(float(velocity[1]), float(velocity[0]))
-    kwargs = {
-        "v_north": float(velocity[0]),
-        "v_east": float(velocity[1]),
-        "v_down": float(velocity[2]),
-        "duration": float(duration),
-        "yaw_is_rate": False,
-        "yaw": float(yaw),
-    }
-    move_task = await drone.move_by_velocity_async(**kwargs)
-    await move_task
-
-
-async def sample_state(
-    drone: Any,
-    start_time: float,
-    previous_velocity: list[float] | None,
-    dt: float,
-) -> tuple[list[float], list[float]]:
-    kinematics = drone.get_ground_truth_kinematics()
-    elapsed = time.monotonic() - start_time
-    return extract_kinematic_state(kinematics, elapsed, previous_velocity, dt)
-
+    return [round(float(x), 6) for x in state]
 
 async def move_to_position_with_sampling(
     drone: Any,
@@ -147,26 +58,37 @@ async def move_to_position_with_sampling(
     sample_rate: float,
     start_time: float,
     states: list[list[float]],
-    previous_velocity: list[float] | None,
     move_step_sec: float,
     tolerance_m: float,
 ) -> list[float] | None:
     dt = 1.0 / sample_rate
     target_np = np.array(target, dtype=float)
     while True:
-        state, previous_velocity = await sample_state(drone, start_time, previous_velocity, dt)
+        kinematics = drone.get_ground_truth_kinematics()
+        elapsed = time.monotonic() - start_time
+        state = extract_kinematic_state(kinematics, elapsed)
         states.append(state)
         current = np.array(state[1:4], dtype=float)
         delta = target_np - current
         distance = float(np.linalg.norm(delta))
         if distance <= tolerance_m:
-            return previous_velocity
+            return
 
         direction = delta / max(distance, 1e-6)
         command_speed = min(speed, distance / max(move_step_sec, 1e-3))
         velocity = direction * command_speed
-        await move_by_velocity(drone, velocity, move_step_sec)
-        await asyncio.sleep(dt)
+
+        yaw = math.atan2(float(velocity[1]), float(velocity[0]))
+        kwargs = {
+            "v_north": float(velocity[0]),
+            "v_east": float(velocity[1]),
+            "v_down": float(velocity[2]),
+            "duration": float(dt),
+            "yaw_is_rate": False,
+            "yaw": float(yaw),
+        }
+        move_task = await drone.move_by_velocity_async(**kwargs)
+        await move_task
 
 
 async def hover_with_sampling(
@@ -175,43 +97,39 @@ async def hover_with_sampling(
     sample_rate: float,
     start_time: float,
     states: list[list[float]],
-    previous_velocity: list[float] | None,
 ) -> list[float] | None:
     hover_task = await drone.hover_async()
     await hover_task
     dt = 1.0 / sample_rate
     end_time = time.monotonic() + seconds
     while time.monotonic() < end_time:
-        state, previous_velocity = await sample_state(drone, start_time, previous_velocity, dt)
+        kinematics = drone.get_ground_truth_kinematics()
+        elapsed = time.monotonic() - start_time
+        state = extract_kinematic_state(kinematics, elapsed)
         states.append(state)
         await asyncio.sleep(dt)
-    return previous_velocity
 
 
 async def fly_episode(drone: Any, episode: dict, config: DataGenConfig) -> dict:
     states: list[list[float]] = []
-    previous_velocity = None
     start_time = time.monotonic()
     speed = float(episode["params"]["speed"])
 
     for waypoint in episode["waypoints"]:
-        previous_velocity = await move_to_position_with_sampling(
+        await move_to_position_with_sampling(
             drone=drone,
             target=waypoint,
             speed=speed,
             sample_rate=config.sample_rate_hz,
             start_time=start_time,
             states=states,
-            previous_velocity=previous_velocity,
             move_step_sec=config.move_step_sec,
             tolerance_m=config.waypoint_tolerance_m,
         )
 
     if episode["trajectory_type"] in {"hover_arrival", "combined"}:
         hover_time = float(episode["params"].get("hover_time", 2.0))
-        previous_velocity = await hover_with_sampling(
-            drone, hover_time, config.sample_rate_hz, start_time, states, previous_velocity
-        )
+        await hover_with_sampling(drone, hover_time, config.sample_rate_hz, start_time, states)
 
     episode["states"] = states
     return episode
@@ -258,12 +176,7 @@ async def collect_dataset(config: DataGenConfig, seed: int | None = None) -> Non
             for episode_id in tqdm(range(config.num_episodes), desc="Collecting episodes"):
                 episode = generator.sample_episode()
                 episode["episode_id"] = episode_id
-                await move_to_start(
-                    drone,
-                    episode["start_position"],
-                    config,
-                    speed=float(episode["params"]["speed"]),
-                )
+                await move_to_start(drone, episode["start_position"], config, speed=float(episode["params"]["speed"]))
                 episode = await fly_episode(drone, episode, config)
                 f.write(json.dumps(episode) + "\n")
                 f.flush()

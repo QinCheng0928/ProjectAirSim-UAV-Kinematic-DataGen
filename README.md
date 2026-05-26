@@ -100,7 +100,7 @@ from projectairsim import ProjectAirSimClient, World, Drone
 仓库中的 `sim_config/scene_config.jsonc` 只是占位文件。运行采集前，请替换为真实 ProjectAirSim scene config，或直接通过命令行传入官方示例 scene config：
 
 ```bash
-python -m scripts.collect_dataset \
+python -m scripts/collect_dataset.py \
   --num-episodes 200 \
   --sample-rate 10 \
   --output data/raw/episodes.jsonl \
@@ -113,7 +113,7 @@ python -m scripts.collect_dataset \
 启动 ProjectAirSim simulator 后运行：
 
 ```bash
-python -m scripts.collect_dataset \
+python -m scripts/collect_dataset.py \
   --num-episodes 200 \
   --sample-rate 10 \
   --output data/raw/episodes.jsonl \
@@ -139,7 +139,7 @@ python -m scripts.collect_dataset \
 ## 导出 Hugging Face Dataset
 
 ```bash
-python -m scripts.export_hf_dataset \
+python -m scripts/export_hf_dataset.py \
   --input data/raw/episodes.jsonl \
   --output data/hf_dataset
 ```
