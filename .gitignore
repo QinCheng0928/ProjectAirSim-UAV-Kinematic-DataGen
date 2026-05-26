@@ -2,6 +2,7 @@ __pycache__/
 
 .agent/
 .codex/
+.vscode/
 
 data/raw/*.jsonl
 data/hf_dataset/

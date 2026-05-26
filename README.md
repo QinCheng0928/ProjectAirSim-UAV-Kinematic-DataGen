@@ -58,9 +58,9 @@
 默认 workspace：
 
 ```text
-x in [-50, 50]
-y in [-50, 50]
-z in [-30, -3]
+x in [-10.0, 50.0]
+y in [-15.0, -5.0]
+z in [-7.0, -4.0]
 ```
 
 可在 `scripts/config.py` 中调整采样频率、episode 数量、速度范围、轨迹长度和 workspace。

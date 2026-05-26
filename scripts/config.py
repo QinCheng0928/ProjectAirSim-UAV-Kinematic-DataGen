@@ -14,7 +14,7 @@ class DataGenConfig:
 
     workspace_x: tuple[float, float] = (-10.0, 50.0)
     workspace_y: tuple[float, float] = (-15.0, -5.0)
-    workspace_z: tuple[float, float] = (-8.0, -1.0)
+    workspace_z: tuple[float, float] = (-7.0, -4.0)
     path_length: tuple[float, float] = (10.0, 55.0)
     speed_range: tuple[float, float] = (2.0, 8.0)
     duration_range: tuple[float, float] = (5.0, 18.0)
