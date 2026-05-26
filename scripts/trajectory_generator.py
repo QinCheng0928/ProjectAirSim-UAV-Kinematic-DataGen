@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from dataclasses import asdict
 import numpy as np
-from .config import DataGenConfig
+from config import DataGenConfig
 
 
 class TrajectoryGenerator:

@@ -6,3 +6,5 @@ __pycache__/
 data/raw/*.jsonl
 data/hf_dataset/
 data/hf_dataset_export/
+
+projectairsim_client.log

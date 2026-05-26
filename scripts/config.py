@@ -9,7 +9,7 @@ class DataGenConfig:
     num_episodes: int = 1000
     sample_rate_hz: float = 10.0
     output_path: Path = Path("data/raw/episodes.jsonl")
-    scene_config: str = "sim_config/scene_drone_classic.jsonc"
+    scene_config: str = "scene_drone_classic.jsonc"
     drone_name: str = "Drone1"
 
     workspace_x: tuple[float, float] = (-10.0, 50.0)
