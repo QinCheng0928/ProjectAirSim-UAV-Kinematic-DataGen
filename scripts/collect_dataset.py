@@ -15,6 +15,7 @@ from tqdm import tqdm
 from .config import DataGenConfig
 from .trajectory_generator import TrajectoryGenerator
 
+from projectairsim import Drone, ProjectAirSimClient, World
 
 def get_nested(data: Any, *names: str, default: Any = None) -> Any:
     current = data
@@ -114,19 +115,6 @@ def extract_kinematic_state(
     return [round(float(x), 6) for x in state], vel
 
 
-async def maybe_await(value: Any) -> Any:
-    if inspect.isawaitable(value):
-        return await value
-    return value
-
-
-async def await_projectairsim_task(task_or_value: Any) -> Any:
-    task = await maybe_await(task_or_value)
-    if inspect.isawaitable(task):
-        return await task
-    return task
-
-
 async def move_by_velocity(drone: Any, velocity: np.ndarray, duration: float) -> None:
     yaw = math.atan2(float(velocity[1]), float(velocity[0]))
     kwargs = {
@@ -137,31 +125,8 @@ async def move_by_velocity(drone: Any, velocity: np.ndarray, duration: float) ->
         "yaw_is_rate": False,
         "yaw": float(yaw),
     }
-    try:
-        await await_projectairsim_task(drone.move_by_velocity_async(**kwargs))
-    except TypeError:
-        await await_projectairsim_task(
-            drone.move_by_velocity_async(
-                v_north=kwargs["v_north"],
-                v_east=kwargs["v_east"],
-                v_down=kwargs["v_down"],
-                duration=kwargs["duration"],
-            )
-        )
-
-
-async def get_kinematics(drone: Any) -> Any:
-    for name in (
-        "get_ground_truth_kinematics",
-        "get_estimated_kinematics",
-        "get_kinematics",
-        "get_ground_truth_state",
-        "get_state",
-    ):
-        method = getattr(drone, name, None)
-        if method is not None:
-            return await maybe_await(method())
-    raise AttributeError("No supported kinematics method found on ProjectAirSim Drone.")
+    move_task = await drone.move_by_velocity_async(**kwargs)
+    await move_task
 
 
 async def sample_state(
@@ -170,7 +135,7 @@ async def sample_state(
     previous_velocity: list[float] | None,
     dt: float,
 ) -> tuple[list[float], list[float]]:
-    kinematics = await get_kinematics(drone)
+    kinematics = drone.get_ground_truth_kinematics()
     elapsed = time.monotonic() - start_time
     return extract_kinematic_state(kinematics, elapsed, previous_velocity, dt)
 
@@ -212,7 +177,8 @@ async def hover_with_sampling(
     states: list[list[float]],
     previous_velocity: list[float] | None,
 ) -> list[float] | None:
-    await await_projectairsim_task(drone.hover_async())
+    hover_task = await drone.hover_async()
+    await hover_task
     dt = 1.0 / sample_rate
     end_time = time.monotonic() + seconds
     while time.monotonic() < end_time:
@@ -253,58 +219,31 @@ async def fly_episode(drone: Any, episode: dict, config: DataGenConfig) -> dict:
 
 async def move_to_start(drone: Any, start_position: list[float], config: DataGenConfig, speed: float) -> None:
     target = np.array(start_position, dtype=float)
-    if hasattr(drone, "move_to_position_async"):
-        timeout = max(20.0, float(np.linalg.norm(target)) / max(speed, 1e-3) + 10.0)
-        try:
-            await await_projectairsim_task(
-                drone.move_to_position_async(
-                    north=float(target[0]),
-                    east=float(target[1]),
-                    down=float(target[2]),
-                    velocity=float(speed),
-                    timeout_sec=timeout,
-                )
+    timeout = max(20.0, float(np.linalg.norm(target)) / max(speed, 1e-3) + 10.0)
+
+    init_move_task = await drone.move_to_position_async(
+                north=float(target[0]),
+                east=float(target[1]),
+                down=float(target[2]),
+                velocity=float(speed),
+                timeout_sec=timeout,
             )
-            return
-        except TypeError:
-            pass
-
-    deadline = time.monotonic() + 60.0
-    while time.monotonic() < deadline:
-        kinematics = await get_kinematics(drone)
-        state, _ = extract_kinematic_state(kinematics, 0.0, None, config.dt)
-        current = np.array(state[1:4], dtype=float)
-        delta = target - current
-        distance = float(np.linalg.norm(delta))
-        if distance <= config.waypoint_tolerance_m:
-            return
-        velocity = delta / max(distance, 1e-6) * min(speed, distance / config.move_step_sec)
-        await move_by_velocity(drone, velocity, config.move_step_sec)
-
+    await init_move_task
 
 async def prepare_drone(drone: Any) -> None:
-    if hasattr(drone, "enable_api_control"):
-        drone.enable_api_control()
-    if hasattr(drone, "arm"):
-        drone.arm()
-    if hasattr(drone, "takeoff_async"):
-        await await_projectairsim_task(drone.takeoff_async(timeout_sec=20))
+    drone.enable_api_control()
+    drone.arm()
+    takeoff_task = await drone.takeoff_async()
+    await takeoff_task
 
 
 async def shutdown_drone(drone: Any) -> None:
-    if hasattr(drone, "hover_async"):
-        await await_projectairsim_task(drone.hover_async())
-    if hasattr(drone, "land_async"):
-        await await_projectairsim_task(drone.land_async(timeout_sec=60))
-    if hasattr(drone, "disarm"):
-        drone.disarm()
-    if hasattr(drone, "disable_api_control"):
-        drone.disable_api_control()
-
+    land_task = await drone.land_async()
+    await land_task
+    drone.disarm()
+    drone.disable_api_control()
 
 async def collect_dataset(config: DataGenConfig, seed: int | None = None) -> None:
-    from projectairsim import Drone, ProjectAirSimClient, World
-
     config.output_path.parent.mkdir(parents=True, exist_ok=True)
     generator = TrajectoryGenerator(config, seed=seed)
 

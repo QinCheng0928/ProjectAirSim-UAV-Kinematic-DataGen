@@ -31,9 +31,7 @@ class TrajectoryGenerator:
             "start_position": self._round_vec(start),
             "goal_position": self._round_vec(goal),
             "waypoints": [self._round_vec(point) for point in waypoints],
-            "obstacle_position": self._round_vec(episode.get("obstacle_position"))
-            if episode.get("obstacle_position") is not None
-            else None,
+            "obstacle_position": self._round_vec(episode.get("obstacle_position")) if episode.get("obstacle_position") is not None else None,
             "dt": self.config.dt,
             "params": {
                 "speed": speed,

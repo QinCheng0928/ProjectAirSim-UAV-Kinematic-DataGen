@@ -6,15 +6,15 @@ from pathlib import Path
 
 @dataclass
 class DataGenConfig:
-    num_episodes: int = 50
+    num_episodes: int = 200
     sample_rate_hz: float = 10.0
     output_path: Path = Path("data/raw/episodes.jsonl")
-    scene_config: str = "sim_config/scene_config.jsonc"
+    scene_config: str = "sim_config/scene_drone_classic.jsonc"
     drone_name: str = "Drone1"
 
     workspace_x: tuple[float, float] = (-10.0, 50.0)
     workspace_y: tuple[float, float] = (-15.0, -5.0)
-    workspace_z: tuple[float, float] = (-10.0, -1.0)
+    workspace_z: tuple[float, float] = (-8.0, -1.0)
     path_length: tuple[float, float] = (10.0, 55.0)
     speed_range: tuple[float, float] = (2.0, 8.0)
     duration_range: tuple[float, float] = (5.0, 18.0)
