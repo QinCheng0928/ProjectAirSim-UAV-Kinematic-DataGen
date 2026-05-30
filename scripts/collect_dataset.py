@@ -211,3 +211,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+# python scripts/collect_dataset.py --num-episodes 500 --sample-rate 10 --output data/raw/episodes.jsonl --scene-config scene_drone_classic.jsonc --drone-name Drone1 --seed 42

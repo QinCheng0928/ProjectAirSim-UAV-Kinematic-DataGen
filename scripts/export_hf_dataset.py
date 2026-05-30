@@ -22,7 +22,9 @@ def write_jsonl(samples: list[dict], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as f:
         for sample in samples:
-            f.write(json.dumps(sample) + "\n")
+            sample_copy = sample.copy()
+            sample_copy.pop("params", None)  
+            f.write(json.dumps(sample_copy) + "\n")
 
 
 def write_dataset_card(samples: list[dict], path: Path) -> None:
@@ -43,7 +45,6 @@ Fields:
 - `waypoints`: planned intermediate NED waypoints.
 - `obstacle_position`: synthetic obstacle center for avoidance episodes, otherwise null.
 - `dt`: target sampling interval in seconds.
-- `params`: randomized speed, duration, noise, and trajectory parameters.
 - `states`: sampled kinematic history.
 
 Trajectory types:
@@ -56,30 +57,23 @@ Generated with the ProjectAirSim Python client using asynchronous UAV velocity c
     path.write_text(text, encoding="utf-8")
 
 
-def export_dataset(input_path: Path, output_path: Path, jsonl_export: Path) -> None:
+def export_dataset(input_path: Path, output: Path) -> None:
     samples = load_jsonl(input_path)
-    dataset = Dataset.from_list(samples)
 
-    if output_path.exists():
-        shutil.rmtree(output_path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    dataset.save_to_disk(str(output_path))
-
-    write_jsonl(samples, jsonl_export / "trajectories.jsonl")
-    write_dataset_card(samples, jsonl_export / "README.md")
+    write_jsonl(samples, output / "trajectories.jsonl")
+    write_dataset_card(samples, output / "README.md")
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Export raw UAV JSONL episodes to Hugging Face Datasets format.")
     parser.add_argument("--input", type=Path, default=Path("data/raw/episodes.jsonl"))
-    parser.add_argument("--output", type=Path, default=Path("data/hf_dataset"))
-    parser.add_argument("--jsonl-export", type=Path, default=Path("data/hf_dataset_export"))
+    parser.add_argument("--output", type=Path, default=Path("data/hf_dataset_export"))
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    export_dataset(args.input, args.output, args.jsonl_export)
+    export_dataset(args.input, args.output)
 
 
 if __name__ == "__main__":

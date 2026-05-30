@@ -141,12 +141,11 @@ python -m scripts/collect_dataset.py \
 ```bash
 python -m scripts/export_hf_dataset.py \
   --input data/raw/episodes.jsonl \
-  --output data/hf_dataset
+  --output data/hf_dataset_export
 ```
 
 该命令会生成：
 
-- `data/hf_dataset/`: `datasets.Dataset.save_to_disk()` 输出。
 - `data/hf_dataset_export/train.jsonl`: 可直接上传的 JSONL。
 - `data/hf_dataset_export/README.md`: 数据集卡片草稿。
 
