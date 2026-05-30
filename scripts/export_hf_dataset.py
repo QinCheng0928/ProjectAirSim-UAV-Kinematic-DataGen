@@ -2,10 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
-import shutil
 from pathlib import Path
-
-from datasets import Dataset
 
 
 def load_jsonl(path: Path) -> list[dict]:
@@ -23,21 +20,60 @@ def write_jsonl(samples: list[dict], path: Path) -> None:
     with path.open("w", encoding="utf-8") as f:
         for sample in samples:
             sample_copy = sample.copy()
-            sample_copy.pop("params", None)  
+            sample_copy.pop("params", None)
             f.write(json.dumps(sample_copy) + "\n")
+
+
+def size_category(num_samples: int) -> str:
+    if num_samples < 1_000:
+        return "n<1K"
+    if num_samples < 10_000:
+        return "1K<n<10K"
+    if num_samples < 100_000:
+        return "10K<n<100K"
+    if num_samples < 1_000_000:
+        return "100K<n<1M"
+    return "n>1M"
 
 
 def write_dataset_card(samples: list[dict], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     trajectory_types = sorted({sample["trajectory_type"] for sample in samples})
     sample_rate = 1.0 / float(samples[0]["dt"]) if samples else 10.0
-    text = f"""# ProjectAirSim UAV Kinematic Trajectories
+    text = f"""---
+license: mit
+language:
+- en
+pretty_name: ProjectAirSim UAV Kinematic Trajectories
+task_categories:
+- time-series-forecasting
+tags:
+- robotics
+- drone
+- uav
+- trajectory-prediction
+- kinematics
+- simulation
+- projectairsim
+size_categories:
+- {size_category(len(samples))}
+configs:
+- config_name: default
+  data_files:
+  - split: train
+    path: trajectories.jsonl
+---
+
+# ProjectAirSim UAV Kinematic Trajectories
+
 This dataset contains UAV trajectory episodes collected from ProjectAirSim. Each row is one episode. The `states` field is a variable-length sequence sampled at approximately {sample_rate:.2f} Hz.
 
 State vector:
+
 `[t, x, y, z, qw, qx, qy, qz, vx, vy, vz, wx, wy, wz, ax, ay, az]`
 
 Fields:
+
 - `episode_id`: integer episode index.
 - `trajectory_type`: trajectory family used to generate waypoints.
 - `start_position`: NED start position `[x, y, z]` in meters.
@@ -51,9 +87,10 @@ Trajectory types:
 {chr(10).join(f"- `{name}`" for name in trajectory_types)}
 
 Source:
+
 Generated with the ProjectAirSim Python client using asynchronous UAV velocity commands and ground-truth or estimated kinematics.
 """
-    
+
     path.write_text(text, encoding="utf-8")
 
 
